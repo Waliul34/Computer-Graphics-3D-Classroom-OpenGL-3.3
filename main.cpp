@@ -735,12 +735,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 void Table(Shader ourShader, glm::mat4 moveMatrix)
 {
 
-    float tableY = 0.5f;
+    float tableY = 0.05f;
     // Top
     glm::mat4 identityMatrix = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 translateMatrix, scaleMatrix, model;
 
-    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
+    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f + tableY, 0.0f));
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(1.5f, 0.1f, 1.0f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix*model);
@@ -751,7 +751,7 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     // Leg 1
     glm::mat4 identityMatrix1 = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 translateMatrix1, scaleMatrix1, model1;
-    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.02f, -0.46f, 0.01f));
+    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.02f, -0.46f + tableY, 0.01f));
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.1f, 1.0f, 0.1f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
@@ -762,7 +762,7 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     // Leg 2
     glm::mat4 identityMatrix2 = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 translateMatrix2, scaleMatrix2, model2;
-    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.02f, -0.46f, 0.43f));
+    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.02f, -0.46f + tableY, 0.43f));
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.1f, 1.0f, 0.1f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
@@ -772,7 +772,7 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
 
     // Leg 3
     //glm::mat4 translateMatrix1, rotateXMatrix1, rotateYMatrix1, rotateZMatrix1, scaleMatrix1, model1;
-    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.69f, -0.46f, 0.01f));
+    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.69f, -0.46f + tableY, 0.01f));
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.1f, 1.0f, 0.1f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
@@ -782,7 +782,7 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
 
     // Leg 4
     //glm::mat4 translateMatrix2, rotateXMatrix2, rotateYMatrix2, rotateZMatrix2, scaleMatrix2, model2;
-    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.69f, -0.46f, 0.43f));
+    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.69f, -0.46f + tableY, 0.43f));
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.1f, 1.0f, 0.1f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
@@ -797,9 +797,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
 
     float fixLeg = 0.7f;
     float fixY = 0.1f;
+    float fixYWhole = -0.08f;
 
     // Top
-    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.11f, 0.0f - fixY, 0.0f));
+    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.11f, 0.0f - fixY + fixYWhole, 0.0f));
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.75f, 0.07f, 0.7f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
@@ -809,7 +810,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     // Leg 1
     glm::mat4 identityMatrix1 = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 translateMatrix1, scaleMatrix1, model1;
-    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.13f, -0.32f, 0.01f));
+    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.13f, -0.32f + fixYWhole, 0.01f));
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
@@ -820,7 +821,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     // Leg 2
     glm::mat4 identityMatrix2 = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 translateMatrix2, scaleMatrix2, model2;
-    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.13f, -0.32f, 0.28f));
+    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.13f, -0.32f + fixYWhole, 0.28f));
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
@@ -830,7 +831,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
 
     //// Leg 3
     //glm::mat4 translateMatrix1, rotateXMatrix1, rotateYMatrix1, rotateZMatrix1, scaleMatrix1, model1;
-    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.43f, -0.32f, 0.01f));
+    translateMatrix1 = glm::translate(identityMatrix1, glm::vec3(0.43f, -0.32f + fixYWhole, 0.01f));
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
@@ -840,7 +841,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
 
     // Leg 4
     //glm::mat4 translateMatrix2, rotateXMatrix2, rotateYMatrix2, rotateZMatrix2, scaleMatrix2, model2;
-    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.43f, -0.32f, 0.28f));
+    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.43f, -0.32f + fixYWhole, 0.28f));
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
@@ -849,7 +850,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
 
 
     //Left up 
-    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.17f, 0.0f - fixY, 0.29f));
+    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.17f, 0.01f - fixY + fixYWhole, 0.29f));
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.25f, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
@@ -858,7 +859,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
 
 
     //Right up
-    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.39f, 0.0f - fixY, 0.29f));
+    translateMatrix2 = glm::translate(identityMatrix2, glm::vec3(0.39f, 0.01f - fixY + fixYWhole, 0.29f));
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.25f, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
@@ -866,7 +867,7 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //Back support
-    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.15f, 0.09f - fixY, 0.28f));
+    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.15f, 0.09f - fixY + fixYWhole, 0.28f));
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.6f, 0.5f, 0.1f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
