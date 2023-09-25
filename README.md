@@ -7,4 +7,4 @@ ii) Move: Up, Down --> E, R \
 iii) Pitch: Positive, Negative --> X, C \
 iv) Yaw: Positive, Negative --> Y, U \
 v) Roll: Positive, Negative --> Z, Q \
-vi) Fan On/Off --> G \
+vi) Fan On/Off --> G
