@@ -1,4 +1,4 @@
-# Computer-Graphics-3D-Classroom-OpenGL-3.3
+# 3D Classroom using OpenGL 3.3 - Computer Graphics
 An assignment that was given to us for Computer Graphics lab.
 
 Functions:
