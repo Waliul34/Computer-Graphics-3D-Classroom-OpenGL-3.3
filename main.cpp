@@ -15,6 +15,9 @@
 #include "shader.h"
 #include "camera.h"
 #include "basic_camera.h"
+#include "directionalLight.h"
+#include "pointLight.h"
+#include "spotLight.h"
 
 #include <iostream>
 #include <stdlib.h>
@@ -35,11 +38,11 @@ void Floor(Shader ourShader, glm::mat4 moveMatrix, glm::vec4 color);
 void BlackBoard(Shader ourShader, glm::mat4 moveMatrix);
 void Fan1(Shader ourShader);
 void Fan2(Shader ourShader);
-
+void drawCube(Shader ourShader, glm::mat4 moveMatrix);
 
 // settings
-const unsigned int SCR_WIDTH = 1200;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1500;
+const unsigned int SCR_HEIGHT = 800;
 
 // modelling transform
 float rotateAngle_X = 0.0;
@@ -61,7 +64,7 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-float eyeX = 0.0, eyeY = 1.0, eyeZ = 2.7;
+float eyeX = 0.0, eyeY = 1.0, eyeZ = 2.5;
 float lookAtX = 0.0, lookAtY = 1.0, lookAtZ = 0.0;
 glm::vec3 V = glm::vec3(0.0f, 1.0f, 0.0f);
 BasicCamera basic_camera(eyeX, eyeY, eyeZ, lookAtX, lookAtY, lookAtZ, V);
@@ -71,9 +74,35 @@ float deltaTime = 0.0f;    // time between current frame and last frame
 float lastFrame = 0.0f;
 
 
+// Light initialization
+glm::vec3 lightPositions[] = {
+        glm::vec3(2.25f, 1.6f, -1.7f),
+        glm::vec3(-1.95f, 1.6f, -1.7f)
+};
+
+glm::vec3 lightDirections[] = {
+    glm::vec3(0.4f, -0.2f, -1.0f)
+};
+
+
+DirectionalLight directionalLight(-lightPositions[1], glm::vec4(0.2f, 0.2f, 0.2f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1);
+PointLight pointLight(lightPositions[0], glm::vec4(0.2f, 0.2f, 0.2f, 1.0f), glm::vec4(0.9f, 0.9f, 0.9f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, 0.09f, 0.032f, 1);
+SpotLight spotLight(lightPositions[1], lightDirections[0], 8.5f, 15.5f, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, 0.09f, 0.032f, 1);
+
+
 //rotate
-bool isRotate = false;
-float fanSpeed = 2.7f;
+bool isRotating = false;
+float fanSpeed = 8.0f;
+
+bool lightingOn = false;
+float ambientOn = 1.0;
+float diffuseOn = 1.0; 
+float specularOn = 1.0;
+bool dark = false;
+
+float directionalLightOn = 0.0;
+float pointLightOn = 1.0;
+float spotLightOn = 0.0;
 
 int main()
 {
@@ -120,6 +149,7 @@ int main()
     // build and compile our shader zprogram
     // ------------------------------------
     Shader ourShader("vertexShader.vs", "fragmentShader.fs");
+    Shader lightCubeShader("lightVertexShader.vs", "lightFragmentShader.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -160,36 +190,37 @@ int main()
         0.5f, 0.5f, 0.5f,
         0.0f, 0.5f, 0.5f
     };*/
+
     float cube_vertices[] = {
-        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, -1.0f,
+
         0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
         0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-
-        0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.0f, 0.5f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
 
         0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f,
         0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f,
         0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
         0.0f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
 
-        0.0f, 0.0f, 0.5f, 1.0f, 1.0f, 0.0f,
-        0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f,
-        0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.5f, -1.0f, 0.0f, 0.0f,
+        0.0f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+        0.0f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
 
-        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
 
-        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        0.5f, 0.0f, 0.5f, 1.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 0.5f, 1.0f, 0.0f, 1.0f
+        0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f,
+        0.5f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f,
+        0.5f, 0.0f, 0.5f, 0.0f, -1.0f, 0.0f,
+        0.0f, 0.0f, 0.5f, 0.0f, -1.0f, 0.0f
     };
     unsigned int cube_indices[] = {
         0, 3, 2,
@@ -285,17 +316,17 @@ int main()
         glm::vec3(1.5f,  0.2f, -1.5f),
         glm::vec3(-1.3f,  1.0f, -1.5f)
     };*/
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+    unsigned int cubeVAO, cubeVBO, cubeEBO;
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glGenBuffers(1, &cubeEBO);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(cubeVAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
 
     // position attribute
@@ -306,9 +337,19 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    //color attribute
+    //vertex normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)12);
     glEnableVertexAttribArray(1);
+
+    //light's VAO
+    unsigned int lightCubeVAO;
+    glGenVertexArrays(1, &lightCubeVAO);
+    glBindVertexArray(lightCubeVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
 
 
@@ -362,13 +403,77 @@ int main()
         //glm::mat4 projection = glm::ortho(-2.0f, +2.0f, -1.5f, +1.5f, 0.1f, 100.0f);
         ourShader.setMat4("projection", projection);
 
+        ////testing rotating around lookat point
+        //const float radius = 2.0f;
+        //float camX = sin(glfwGetTime()) * radius;
+        //float camZ = cos(glfwGetTime()) * radius;
+        //glm::mat4 view;
+        //view = glm::lookAt(glm::vec3(camX, 1.0, camZ), glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+
         // camera/view transformation
-        //glm::mat4 view = camera.GetViewMatrix();
+        //glm::mat4 view = basic_camera.createViewMatrix();
         glm::mat4 view = camera.GetViewMatrix();
         ourShader.setMat4("view", view);
 
 
+        //**************lighting**************
 
+        /*glm::vec3 lightColor;
+        lightColor.x = sin(glfwGetTime() * 1.0f);
+        lightColor.y = sin(glfwGetTime() * 0.35f);
+        lightColor.z = sin(glfwGetTime() * 0.7f);
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+        ourShader.setVec4("light.ambient", glm::vec4(ambientColor, 1.0f));
+        ourShader.setVec4("light.diffuse", glm::vec4(diffuseColor, 1.0f));*/
+
+
+        /*lightPositions[0].x = 1.0f + sin(glfwGetTime()) * 2.0f;
+        lightPositions[0].y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
+
+        //Setting up Directional Light
+        directionalLight.setUpLight(ourShader);
+        if (!directionalLightOn)
+            directionalLight.turnOff();
+        if (!ambientOn)
+            directionalLight.turnAmbientOff();
+        if(!diffuseOn)
+            directionalLight.turnDiffuseOff();
+        if(!specularOn)
+            directionalLight.turnSpecularOff();
+
+        //Setting up Point Light
+        pointLight.setUpLight(ourShader);
+        if (!pointLightOn)
+            pointLight.turnOff();
+        if (!ambientOn)
+            pointLight.turnAmbientOff();
+        if (!diffuseOn)
+            pointLight.turnDiffuseOff();
+        if (!specularOn)
+            pointLight.turnSpecularOff();
+
+        //Setting up Spot Light
+        spotLight.setUpLight(ourShader);
+        if (!spotLightOn)
+            spotLight.turnOff();
+        if (!ambientOn)
+            spotLight.turnAmbientOff();
+        if (!diffuseOn)
+            spotLight.turnDiffuseOff();
+        if (!specularOn)
+            spotLight.turnSpecularOff();
+
+        //Setting up Camera and Others
+        ourShader.setVec3("viewPos", camera.Position);
+        ourShader.setBool("lightingOn", lightingOn);
+        ourShader.setFloat("ambientOn", ambientOn);
+        ourShader.setFloat("diffuseOn", diffuseOn);
+        ourShader.setFloat("specularOn", specularOn);
+        ourShader.setFloat("pointLightOn", pointLightOn);
+        ourShader.setFloat("directionalLightOn", directionalLightOn);
+        ourShader.setFloat("spotLightOn", spotLightOn);
+        ourShader.setBool("dark", dark);
 
         ////For axis
         //ourShader.use();
@@ -378,7 +483,7 @@ int main()
         //glDrawArrays(GL_LINES, 0, 6);
 
 
-        glBindVertexArray(VAO);
+        glBindVertexArray(cubeVAO);
 
 
         // Starting
@@ -392,12 +497,12 @@ int main()
 
         float chairX = 0.1f;
 
-
         // Middle column
         translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f + fixY, 0.0f));
         Table(ourShader, translateMatrix);
         translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f + chairX, 0.0f + fixY, 1.0f - chairZ));
         Chair(ourShader, translateMatrix);
+
 
         translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f + fixY, -1.35f));
         Table(ourShader, translateMatrix);
@@ -476,7 +581,7 @@ int main()
         FrontWall(ourShader, translateMatrix);       //Back
 
         translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f, 2.0f));
-        color1 = glm::vec4(0.9f, 0.9f, 0.9f, 1.0f);
+        color1 = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
         Roof(ourShader, translateMatrix, color1);       //Roof
 
         translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, -1.7f, 2.0f));
@@ -484,7 +589,6 @@ int main()
         Floor(ourShader, translateMatrix, color1);       //Floor
 
         
-
         //BlackBoard
         translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
         BlackBoard(ourShader, translateMatrix);
@@ -492,6 +596,45 @@ int main()
 
         //Fan
         Fan1(ourShader);
+
+
+        //Lights
+        for (int i = 0; i < 2; i++)
+        {
+            lightCubeShader.use();
+
+            /*glm::vec3 lightColor;
+            lightColor.x = sin(glfwGetTime() * 1.0f);
+            lightColor.y = sin(glfwGetTime() * 0.35f);
+            lightColor.z = sin(glfwGetTime() * 0.7f);
+            glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+            lightCubeShader.setVec4("bodyColor", glm::vec4(diffuseColor, 1.0f));*/
+
+            glm::vec4 bodyColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+            //emissive
+            glm::vec3 val = glm::vec3(0.5f);
+            if (i == 0 and pointLightOn == 0.0)
+                bodyColor = glm::vec4(val, 1.0f);
+            if (i == 1 and spotLightOn == 0.0)
+                bodyColor = glm::vec4(val, 1.0f);
+            if (dark)
+                bodyColor = glm::vec4(val, 1.0f);
+
+            lightCubeShader.setVec4("bodyColor", bodyColor);
+            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+            lightCubeShader.setMat4("projection", projection);
+            glm::mat4 view = camera.GetViewMatrix();
+            lightCubeShader.setMat4("view", view);
+            glm::mat4 tempModel = glm::mat4(1.0f);
+            tempModel = glm::translate(tempModel, lightPositions[i]);
+            tempModel = glm::scale(tempModel, glm::vec3(0.5f));
+            lightCubeShader.setMat4("model", tempModel);
+
+            glBindVertexArray(lightCubeVAO);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        }
 
 
         // render boxes
@@ -515,9 +658,10 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &lightCubeVAO);
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteBuffers(1, &cubeVBO);
+    glDeleteBuffers(1, &cubeEBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -564,7 +708,7 @@ void processInput(GLFWwindow* window)
         rotateAxis_Z = 0.0;*/
         camera.ProcessYPR(0.0f, 3.0f, 0.0f);
     }
-    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)                   //Pitch negative
+    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)                   //Pitch negative
     {
         /*rotateAngle_X += 1;
         rotateAxis_X = 1.0;
@@ -615,12 +759,18 @@ void processInput(GLFWwindow* window)
         basic_camera.changeEye(eyeX, eyeY, eyeZ);
     }
     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)                   //Rotate camera around a look at point
-    {
+    {                                                                   //Right
         /*eyeX -= 2.5 * deltaTime;
         basic_camera.changeEye(eyeX, eyeY, eyeZ);*/
-
-
+        camera.RotateAroundLookAt(2.0f);
     }
+    if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)                   //Rotate camera around a look at point
+    {                                                                   //Left
+        /*eyeX -= 2.5 * deltaTime;
+        basic_camera.changeEye(eyeX, eyeY, eyeZ);*/
+        camera.RotateAroundLookAt(-2.0f);
+    }
+
     if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
     {
         eyeZ += 2.5 * deltaTime;
@@ -630,10 +780,9 @@ void processInput(GLFWwindow* window)
     {
         /*eyeZ -= 2.5 * deltaTime;
         basic_camera.changeEye(eyeX, eyeY, eyeZ);*/
-        isRotate ^= true;
-        cout << isRotate << endl;
+        isRotating ^= true;
+        cout << isRotating << endl;
         Sleep(100);
-
     }
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
     {
@@ -642,21 +791,133 @@ void processInput(GLFWwindow* window)
     }
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)                   //Up
     {
-        /*eyeY -= 2.5 * deltaTime;
-        basic_camera.changeEye(eyeX, eyeY, eyeZ);*/
+        eyeY -= 2.5 * deltaTime;
+        basic_camera.changeEye(eyeX, eyeY, eyeZ);
+
         camera.ProcessKeyboard(UP, deltaTime);
 
     }
-    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+
+    //***************Lighting***************
+
+    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)                   //Lighting On-Off
     {
-        lookAtX += 2.5 * deltaTime;
-        basic_camera.changeLookAt(lookAtX, lookAtY, lookAtZ);
+        lightingOn ^= true;
+        cout << lightingOn << endl;
+        Sleep(100);
     }
-    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)                   //Ambient On
     {
-        lookAtX -= 2.5 * deltaTime;
-        basic_camera.changeLookAt(lookAtX, lookAtY, lookAtZ);
+        ambientOn = 1.0;
+        pointLight.turnAmbientOn();
+        spotLight.turnAmbientOn();
+        directionalLight.turnAmbientOn();
     }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)                   //Ambient Off
+    {
+        ambientOn = 0.0;
+        pointLight.turnAmbientOff();
+        spotLight.turnAmbientOff();
+        directionalLight.turnAmbientOff();
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)                   //Diffuse On
+    {
+        diffuseOn = 1.0;
+        pointLight.turnDiffuseOn();
+        spotLight.turnDiffuseOn();
+        directionalLight.turnDiffuseOn();
+
+    }
+    if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)                   //Diffuse Off
+    {
+        diffuseOn = 0.0;
+        pointLight.turnDiffuseOff();
+        spotLight.turnDiffuseOff();
+        directionalLight.turnDiffuseOff();
+    }
+    if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)                   //Specular On
+    {
+        specularOn = 1.0;
+        pointLight.turnSpecularOn();
+        spotLight.turnSpecularOn();
+        directionalLight.turnSpecularOn();
+    }
+    if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)                   //Specular Off
+    {
+        specularOn = 0.0;
+        pointLight.turnSpecularOff();
+        spotLight.turnSpecularOff();
+        directionalLight.turnSpecularOff();
+    }
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)                   //Point Light On
+    {
+        pointLightOn = 1.0;
+        pointLight.turnOn();
+    }
+    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)                   //Point Light Off
+    {
+        pointLightOn = 0.0;
+        pointLight.turnOff();
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)                   //Directional Light On
+    {
+        directionalLightOn = 1.0;
+        directionalLight.turnOn();
+    }
+    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)                   //Directional Light Off
+    {
+        directionalLightOn = 0.0;
+        directionalLight.turnOff();
+    }
+    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)                   //Spot Light On
+    {
+        spotLightOn = 1.0;
+        spotLight.turnOn();
+    }
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)                   //Spot Light Off
+    {
+        spotLightOn = 0.0;
+        spotLight.turnOff();
+    }
+    if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)                   //Dark On-Off
+    {
+        dark ^= true;
+        cout << dark << endl;
+        Sleep(100);
+    }
+
+
+
+
+
+    //if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)               //Basic Camera rotate around lookat
+    //{
+    //    //lookAtX += 2.5 * deltaTime;
+    //    //basic_camera.changeLookAt(lookAtX, lookAtY, lookAtZ);
+    //    float change = -0.3f;
+    //    float x, y, z;
+    //    x = eyeX * cos(glm::radians(change)) + eyeZ * sin(glm::radians(change));
+    //    y = eyeY;
+    //    z = - eyeX * sin(glm::radians(change)) + eyeZ * cos(glm::radians(change));
+
+    //    eyeX = x, eyeY = y, eyeZ = z;
+    //    basic_camera.changeEye(eyeX, eyeY, eyeZ);
+    //}
+    //if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+    //{
+    //    //lookAtX -= 2.5 * deltaTime;
+    //    //basic_camera.changeLookAt(lookAtX, lookAtY, lookAtZ);
+
+    //    float change = 0.3f;
+    //    float x, y, z;
+    //    x = eyeX * cos(glm::radians(change)) + eyeZ * sin(glm::radians(change));
+    //    y = eyeY;
+    //    z = -eyeX * sin(glm::radians(change)) + eyeZ * cos(glm::radians(change));
+
+    //    eyeX = x, eyeY = y, eyeZ = z;
+    //    basic_camera.changeEye(eyeX, eyeY, eyeZ);
+    //}
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
     {
         lookAtY += 2.5 * deltaTime;
@@ -732,6 +993,28 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
+
+
+//OBJECTS
+
+void drawCube(Shader ourShader, glm::mat4 moveMatrix)
+{
+    glm::mat4 identityMatrix = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+    glm::mat4 translateMatrix, scaleMatrix, model;
+
+    translateMatrix = glm::translate(identityMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
+    scaleMatrix = glm::scale(identityMatrix, glm::vec3(1.0f));
+    model = translateMatrix * scaleMatrix;
+    ourShader.setMat4("model", moveMatrix * model);
+
+    ourShader.setVec4("material.ambient", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
+
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+}
+
 void Table(Shader ourShader, glm::mat4 moveMatrix)
 {
 
@@ -744,7 +1027,10 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(1.5f, 0.1f, 1.0f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix*model);
-    ourShader.setVec4("color", glm::vec4(0.5f, 1.0f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.5f, 1.0f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.5f, 1.0f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    ourShader.setFloat("material.shininess", 128.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -755,7 +1041,10 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.1f, 1.0f, 0.1f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
-    ourShader.setVec4("color", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -766,7 +1055,10 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.1f, 1.0f, 0.1f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
-    ourShader.setVec4("color", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -776,7 +1068,10 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.1f, 1.0f, 0.1f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
-    ourShader.setVec4("color", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -786,7 +1081,10 @@ void Table(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.1f, 1.0f, 0.1f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
-    ourShader.setVec4("color", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(1.5f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -804,7 +1102,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.75f, 0.07f, 0.7f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.3f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.3f, 0.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.3f, 0.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     // Leg 1
@@ -814,7 +1115,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -825,7 +1129,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -835,7 +1142,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix1 = glm::scale(identityMatrix1, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model1 = translateMatrix1 * scaleMatrix1;
     ourShader.setMat4("model", moveMatrix * model1);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -845,7 +1155,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.7f * fixLeg, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -854,7 +1167,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.25f, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 
@@ -863,7 +1179,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix2 = glm::scale(identityMatrix2, glm::vec3(0.07f, 0.25f, 0.07f));
     model2 = translateMatrix2 * scaleMatrix2;
     ourShader.setMat4("model", moveMatrix * model2);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.9f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //Back support
@@ -871,7 +1190,10 @@ void Chair(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.6f, 0.5f, 0.1f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", glm::vec4(0.9f, 0.3f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.9f, 0.3f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.9f, 0.3f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -884,7 +1206,10 @@ void SideWall(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.1f, 2.5f * 1.6f, 14.0f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", glm::vec4(0.97f, 0.65f, 0.53f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.97f, 0.65f, 0.53f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.97f, 0.65f, 0.53f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -897,7 +1222,10 @@ void FrontWall(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(9.3f, 2.5f * 1.6f, 0.1f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", glm::vec4(0.8f, 0.9f, 0.7f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.8f, 0.9f, 0.7f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.8f, 0.9f, 0.7f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -910,7 +1238,10 @@ void Roof(Shader ourShader, glm::mat4 moveMatrix, glm::vec4 color)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(9.3f, 0.1f, 14.0f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", color);
+    ourShader.setVec4("material.ambient", color);
+    ourShader.setVec4("material.diffuse", color);
+    ourShader.setVec4("material.specular", glm::vec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -923,7 +1254,11 @@ void Floor (Shader ourShader, glm::mat4 moveMatrix, glm::vec4 color)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(9.3f, 0.1f, 14.0f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", color);
+    ourShader.setVec4("material.ambient", color);
+    ourShader.setVec4("material.diffuse", color);
+    ourShader.setVec4("material.specular", glm::vec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
+
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -938,14 +1273,20 @@ void BlackBoard(Shader ourShader, glm::mat4 moveMatrix)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(6.3f, 1.5f, 0.1f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", glm::vec4(0.4f, 0.16f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.4f, 0.16f, 0.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.4f, 0.16f, 0.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     translateMatrix = glm::translate(identityMatrix, glm::vec3(-1.23f, 0.26f + fixY, -3.98f));        //Board
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(6.0f, 1.3f, 0.1f));
     model = translateMatrix * scaleMatrix;
     ourShader.setMat4("model", moveMatrix * model);
-    ourShader.setVec4("color", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.1f, 0.1f, 0.1f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.6f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 128.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
@@ -953,6 +1294,8 @@ void Fan1(Shader ourShader)
 {
     glm::mat4 identityMatrix = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 translateToPivot, translateFromPivot, rotateYMatrix, scaleMatrix, model, moveModel;
+    glm::vec4 translateToPivotOrg, translateFromPivotOrg;
+    glm::vec3 pivot;
 
     //Handle
     moveModel = glm::translate(identityMatrix, glm::vec3(0.0f, 1.77f, 0.0f));
@@ -960,10 +1303,13 @@ void Fan1(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.1f, 0.5f, 0.1f));
     model = moveModel * scaleMatrix;
     ourShader.setMat4("model",  model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-    if (isRotate)
+    if (isRotating)
     {
         rotateAngle_Y += fanSpeed;
         rotateAngle_Y = fmod(rotateAngle_Y, 360);
@@ -972,38 +1318,72 @@ void Fan1(Shader ourShader)
 
 
     //Center
-    translateToPivot = glm::translate(identityMatrix, glm::vec3(-0.125f, -0.075f, -0.125f));
-    translateFromPivot = glm::translate(identityMatrix, glm::vec3(0.125f, 0.075f, 0.125f));
+    pivot = glm::vec3(0.25, 0.25, 0.25);
+
+    translateToPivotOrg = glm::vec4(-pivot, 0.0f);
+    translateFromPivotOrg = glm::vec4(pivot, 0.0f);
+    
     moveModel = glm::translate(identityMatrix, glm::vec3(-0.1f, 1.65f, -0.1f));
     rotateYMatrix = glm::rotate(identityMatrix, glm::radians(rotateAngle_Y), glm::vec3(0.0f, 1.0f, 0.0f));
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.5f, 0.3f, 0.5f));
+    
+    translateToPivotOrg = scaleMatrix * translateToPivotOrg;
+    translateFromPivotOrg = scaleMatrix * translateFromPivotOrg;
+    translateToPivot = glm::translate(identityMatrix, glm::vec3(translateToPivotOrg));
+    translateFromPivot = glm::translate(identityMatrix, glm::vec3(translateFromPivotOrg));
+
     model = moveModel * translateFromPivot * rotateYMatrix * translateToPivot * scaleMatrix;
     //model = moveModel * rotateYMatrix * scaleMatrix;
     //model =  translateFromPivot * rotateYMatrix * translateToPivot;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 1.0f, 0.2f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.2f, 1.0f, 0.2f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.2f, 1.0f, 0.2f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //One hand
-    translateToPivot = glm::translate(identityMatrix, glm::vec3(-0.7f, -0.025f, -0.075f));
-    translateFromPivot = glm::translate(identityMatrix, glm::vec3(0.7f, 0.025f, 0.075f));
+
+    translateToPivotOrg = glm::vec4(-pivot, 0.0f);
+    translateFromPivotOrg = glm::vec4(pivot, 0.0f);
+
     moveModel = glm::translate(identityMatrix, glm::vec3(-0.65f, 1.67f, -0.05f));
     rotateYMatrix = glm::rotate(identityMatrix, glm::radians(rotateAngle_Y), glm::vec3(0.0f, 1.0f, 0.0f));
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(2.8f, 0.1f, 0.3f));
+
+    translateToPivotOrg = scaleMatrix * translateToPivotOrg;
+    translateFromPivotOrg = scaleMatrix * translateFromPivotOrg;
+    translateToPivot = glm::translate(identityMatrix, glm::vec3(translateToPivotOrg));
+    translateFromPivot = glm::translate(identityMatrix, glm::vec3(translateFromPivotOrg));
+
     model = moveModel * translateFromPivot * rotateYMatrix * translateToPivot * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //Second hand
-    translateToPivot = glm::translate(identityMatrix, glm::vec3(-0.075f, -0.025f, -0.7f));
-    translateFromPivot = glm::translate(identityMatrix, glm::vec3(0.075f, 0.025f, 0.7f));
+
+    translateToPivotOrg = glm::vec4(-pivot, 0.0f);
+    translateFromPivotOrg = glm::vec4(pivot, 0.0f);
+
     moveModel = glm::translate(identityMatrix, glm::vec3(-0.05f, 1.67f, -0.65f));
     rotateYMatrix = glm::rotate(identityMatrix, glm::radians(rotateAngle_Y), glm::vec3(0.0f, 1.0f, 0.0f));
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.3f, 0.1f, 2.8f));
+
+    translateToPivotOrg = scaleMatrix * translateToPivotOrg;
+    translateFromPivotOrg = scaleMatrix * translateFromPivotOrg;
+    translateToPivot = glm::translate(identityMatrix, glm::vec3(translateToPivotOrg));
+    translateFromPivot = glm::translate(identityMatrix, glm::vec3(translateFromPivotOrg));
+
     model = moveModel * translateFromPivot * rotateYMatrix * translateToPivot * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("material.ambient", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("material.diffuse", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("material.specular", glm::vec4(0.5f, 0.5f, 0.5f, 0.5f));
+    ourShader.setFloat("material.shininess", 32.0f);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 }
@@ -1019,10 +1399,10 @@ void Fan2(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.1f, 0.5f, 0.1f));
     model = moveModel * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+    ourShader.setVec4("objectColor", glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-    if (isRotate)
+    if (isRotating)
     {
         rotateAngle_Y += 2.7f;
         rotateAngle_Y = fmod(rotateAngle_Y, 360);
@@ -1043,7 +1423,7 @@ void Fan2(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.5f, 0.3f, 0.5f));
     model = moveModel * scaleMatrix * translateFromPivot * rotateYMatrix * translateToPivot;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 1.0f, 0.2f, 1.0f));
+    ourShader.setVec4("objectColor", glm::vec4(0.2f, 1.0f, 0.2f, 1.0f));
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //hand 1
@@ -1052,7 +1432,7 @@ void Fan2(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(-1.5f, 0.1f, 0.3f));
     model = moveModel * rotateYMatrix * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("objectColor", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //hand 2
@@ -1061,7 +1441,7 @@ void Fan2(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(1.5f, 0.1f, 0.3f));
     model = moveModel * rotateYMatrix * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("objectColor", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //hand 3
@@ -1070,7 +1450,7 @@ void Fan2(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.3f, 0.1f, -1.5f));
     model = moveModel * rotateYMatrix * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("objectColor", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     //hand 4
@@ -1079,6 +1459,6 @@ void Fan2(Shader ourShader)
     scaleMatrix = glm::scale(identityMatrix, glm::vec3(0.3f, 0.1f, 1.5f));
     model = moveModel * rotateYMatrix * scaleMatrix;
     ourShader.setMat4("model", model);
-    ourShader.setVec4("color", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
+    ourShader.setVec4("objectColor", glm::vec4(0.2f, 0.2f, 1.0f, 1.0f));
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
