@@ -1,6 +1,7 @@
 # 3D Classroom using OpenGL 3.3 - Computer Graphics
 An assignment that was given to us for Computer Graphics lab.
-
+Visualization: https://youtu.be/PtNGzIDRkuo 
+ 
 Functions: \
 [View] \
 i) Move: Forward, Backward, Left, Right --> W, S, A, D \
