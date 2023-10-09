@@ -9,7 +9,7 @@ iv) Yaw: Right, Left --> Y, U \
 v) Roll: Left, Right --> Z, Q \
 vi) Rotate around a lookat point: Right, Left --> F, K \
 vii) Fan On/Off --> G \
-[Lighting]
+[Lighting] \
 viii) Illumination Model On/Off --> L
 ix) Lighting On/Off --> 0
 x) Point Light: On, Off --> C, V
