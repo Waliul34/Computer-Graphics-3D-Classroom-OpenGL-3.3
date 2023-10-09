@@ -2,6 +2,7 @@
 An assignment that was given to us for Computer Graphics lab.
 
 Functions: \
+[View] \
 i) Move: Forward, Backward, Left, Right --> W, S, A, D \
 ii) Move: Up, Down --> E, R \
 iii) Pitch: Up, Down --> X, J \
@@ -10,11 +11,11 @@ v) Roll: Left, Right --> Z, Q \
 vi) Rotate around a lookat point: Right, Left --> F, K \
 vii) Fan On/Off --> G \
 [Lighting] \
-viii) Illumination Model On/Off --> L
-ix) Lighting On/Off --> 0
-x) Point Light: On, Off --> C, V
-xi) Directional Light: On, Off --> B, N
-xii) Spot Light: On, Off --> M, P
-xiii) Ambient: On, Off --> 1, 2
-xiv) Diffuse: On, Off --> 3, 4
+viii) Illumination Model On/Off --> L \
+ix) Lighting On/Off --> 0 \
+x) Point Light: On, Off --> C, V \
+xi) Directional Light: On, Off --> B, N \
+xii) Spot Light: On, Off --> M, P \
+xiii) Ambient: On, Off --> 1, 2 \
+xiv) Diffuse: On, Off --> 3, 4 \
 xv) Specular: On, Off --> 5, 6
