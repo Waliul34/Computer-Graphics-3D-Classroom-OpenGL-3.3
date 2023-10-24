@@ -2,7 +2,7 @@
 //  main.cpp
 //  3D Object Drawing
 //
-//  Created by Nazirul Hasan on 4/9/23.
+//  Created by Waliul Islam Sumon on 4/9/23.
 //
 
 #include <glad/glad.h>
