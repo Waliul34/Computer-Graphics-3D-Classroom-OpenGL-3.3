@@ -20,3 +20,4 @@ xii) Spot Light: On, Off --> M, P \
 xiii) Ambient: On, Off --> 1, 2 \
 xiv) Diffuse: On, Off --> 3, 4 \
 xv) Specular: On, Off --> 5, 6
+ 
